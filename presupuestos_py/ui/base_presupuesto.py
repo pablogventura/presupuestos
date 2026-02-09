@@ -1,0 +1,269 @@
+"""
+Clase base para formularios de presupuesto (Venta, Donación, Cesión, Partición).
+"""
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+
+import config
+import datos
+
+
+def _parse_decimal(s: str) -> float:
+    """Convierte string con coma decimal a float."""
+    try:
+        return float(str(s).replace(".", "").replace(",", "."))
+    except ValueError:
+        return 0.0
+
+
+class BasePresupuestoWindow:
+    TIPO_OPERACION = ""
+    TIENE_REPOSICION = True
+    USA_GEN_HTML = "gen"  # "gen" o "gen_donacion"
+
+    def __init__(self, root: tk.Tk, on_volver):
+        self.root = root
+        self.on_volver = on_volver
+        self.win = tk.Toplevel(root)
+        self.win.title(self.TIPO_OPERACION)
+        self.win.resizable(False, False)
+        self.win.protocol("WM_DELETE_WINDOW", self._on_salir)
+
+        self.aplicadamitad = False
+        self.entries = {}  # nombre -> Entry
+
+        # Menú
+        menubar = tk.Menu(self.win)
+        self.win.config(menu=menubar)
+        menu_archivo = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Archivo", menu=menu_archivo)
+        menu_archivo.add_command(label="Exportar HTML...", command=self._exportar_html)
+        menu_archivo.add_command(label="Salir", command=self._on_salir)
+        menu_edicion = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Edición", menu=menu_edicion)
+        menu_edicion.add_command(label="Copiar resultados en HTML", command=self._copiar_html)
+        menu_edicion.add_command(label="Pegar Valor Económico", command=self._pegar_ve)
+        menu_edicion.add_command(label="Borrar todo", command=self._borrar_todo)
+        menu_ayuda = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Ayuda", menu=menu_ayuda)
+        menu_ayuda.add_command(label="Configuración", command=self._config)
+        menu_ayuda.add_command(label="Acerca de...", command=self._about)
+
+        # Valor económico
+        frame_ve = ttk.LabelFrame(self.win, text="Valor económico:", padding=5)
+        frame_ve.pack(fill=tk.X, padx=10, pady=5)
+        self.veconomico = ttk.Entry(frame_ve, width=15)
+        self.veconomico.insert(0, "0,00")
+        self.veconomico.pack(anchor=tk.W)
+        self.veconomico.bind("<FocusIn>", lambda e: self.veconomico.select_range(0, tk.END))
+
+        # Partes + Calcular
+        frame_top = ttk.Frame(self.win, padding=5)
+        frame_top.pack(fill=tk.X)
+        frame_partes = ttk.LabelFrame(frame_top, text="Partes:", padding=5)
+        frame_partes.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.partes = ttk.Entry(frame_partes, width=35)
+        self.partes.pack(fill=tk.X)
+        self.partes.config(state="disabled")
+        ttk.Button(frame_top, text="Calcular", command=self._calcular).pack(
+            side=tk.RIGHT, padx=5
+        )
+
+        # Presupuesto
+        frame_pre = ttk.LabelFrame(self.win, text="Presupuesto:", padding=10)
+        frame_pre.pack(fill=tk.X, padx=10, pady=5)
+
+        rows = [
+            ("Arancel:", "arancel"),
+            ("Certificados:", "certificado"),
+            ("Aportes (a):", "aportes1"),
+            ("Aportes (b):", "aportes2"),
+        ]
+        if self.TIENE_REPOSICION:
+            rows.append(("Reposición:", "reposicion"))
+        rows.extend([
+            ("Anotación:", "anotacion"),
+            ("Gasto operativo:", "goperativo"),
+            ("Protocolo Ley 9343:", "protoley"),
+        ])
+        for r, (label, key) in enumerate(rows):
+            ttk.Label(frame_pre, text=label, width=20, anchor=tk.E).grid(
+                row=r, column=0, sticky=tk.E, pady=2, padx=(0, 5)
+            )
+            e = ttk.Entry(frame_pre, width=12, state="disabled")
+            e.insert(0, "0,00")
+            e.grid(row=r, column=1, sticky=tk.W, pady=2)
+            self.entries[key] = e
+
+        # Bajar arancel
+        r = len(rows)
+        self.btn_bajar = tk.Button(
+            frame_pre, text="/", width=2, bg="#c0c0c0",
+            command=self._bajar_arancel, state="disabled"
+        )
+        self.btn_bajar.grid(row=0, column=2, padx=5)
+
+        # Otros 1, 2, 3
+        for i in range(1, 4):
+            r += 1
+            ne = ttk.Entry(frame_pre, width=15, state="disabled")
+            ne.insert(0, "Otros:")
+            ne.grid(row=r, column=0, sticky=tk.E, pady=2, padx=(0, 5))
+            self.entries[f"notros{i}"] = ne
+            oe = ttk.Entry(frame_pre, width=12, state="disabled")
+            oe.insert(0, "0,00")
+            oe.grid(row=r, column=1, sticky=tk.W, pady=2)
+            self.entries[f"otros{i}"] = oe
+
+        # Total
+        r += 1
+        ttk.Label(frame_pre, text="Total:", width=20, anchor=tk.E, font=("", 10, "bold")).grid(
+            row=r, column=0, sticky=tk.E, pady=5, padx=(0, 5)
+        )
+        self.entries["total"] = ttk.Entry(frame_pre, width=12, state="disabled")
+        self.entries["total"].insert(0, "0,00")
+        self.entries["total"].grid(row=r, column=1, sticky=tk.W, pady=5)
+
+        # Atajos para los entries más usados
+        self.arancel = self.entries["arancel"]
+        self.certificado = self.entries["certificado"]
+        self.aportes1 = self.entries["aportes1"]
+        self.aportes2 = self.entries["aportes2"]
+        self.anotacion = self.entries["anotacion"]
+        self.goperativo = self.entries["goperativo"]
+        self.protoley = self.entries["protoley"]
+        self.otros1 = self.entries["otros1"]
+        self.otros2 = self.entries["otros2"]
+        self.otros3 = self.entries["otros3"]
+        self.total = self.entries["total"]
+        if self.TIENE_REPOSICION:
+            self.reposicion = self.entries["reposicion"]
+        self.notros1 = self.entries["notros1"]
+        self.notros2 = self.entries["notros2"]
+        self.notros3 = self.entries["notros3"]
+
+        # Botón Imprimir
+        ttk.Button(frame_pre, text="Imprimir (PDF)", command=self._imprimir).pack(
+            pady=10, anchor=tk.W
+        )
+
+    def _get_ve(self) -> float:
+        return _parse_decimal(self.veconomico.get())
+
+    def _set_entry(self, key: str, valor: str):
+        e = self.entries.get(key)
+        if e:
+            e.config(state="normal")
+            e.delete(0, tk.END)
+            e.insert(0, valor)
+            e.config(state="disabled")
+
+    def _calcular(self):
+        """Override en subclases."""
+        pass
+
+    def _sumar_todo(self) -> str:
+        total_val = _parse_decimal(self.arancel.get()) + _parse_decimal(self.certificado.get())
+        total_val += _parse_decimal(self.aportes1.get()) + _parse_decimal(self.aportes2.get())
+        total_val += _parse_decimal(self.anotacion.get()) + _parse_decimal(self.goperativo.get())
+        total_val += _parse_decimal(self.protoley.get())
+        total_val += _parse_decimal(self.otros1.get()) + _parse_decimal(self.otros2.get()) + _parse_decimal(self.otros3.get())
+        if self.TIENE_REPOSICION:
+            total_val += _parse_decimal(self.reposicion.get())
+        return datos.agrega_decimales(str(total_val))
+
+    def _habilitar_campos(self):
+        for key in ("arancel", "certificado", "aportes1", "aportes2", "anotacion",
+                    "goperativo", "protoley", "otros1", "otros2", "otros3", "total"):
+            if key in self.entries:
+                self.entries[key].config(state="normal")
+        if self.TIENE_REPOSICION and "reposicion" in self.entries:
+            self.entries["reposicion"].config(state="normal")
+        self.partes.config(state="normal")
+        self.btn_bajar.config(state="normal")
+
+    def _bajar_arancel(self):
+        if not self.aplicadamitad:
+            val = _parse_decimal(self.arancel.get()) / 2
+            self._set_entry("arancel", datos.agrega_decimales(str(val)))
+            self.total.delete(0, tk.END)
+            self.total.insert(0, self._sumar_todo())
+            self.aplicadamitad = True
+            self.btn_bajar.config(bg="red")
+
+    def _exportar_html(self):
+        html = self._get_html()
+        if not html:
+            return
+        path = filedialog.asksaveasfilename(
+            defaultextension=".htm",
+            filetypes=[("Página Web (*.htm)", "*.htm"), ("Todos", "*.*")],
+        )
+        if path:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(html)
+
+    def _copiar_html(self):
+        html = self._get_html()
+        if html:
+            self.win.clipboard_clear()
+            self.win.clipboard_append(html)
+
+    def _get_html(self) -> str:
+        """Override en subclases según USA_GEN_HTML."""
+        return ""
+
+    def _pegar_ve(self):
+        try:
+            txt = self.win.clipboard_get()
+            self.veconomico.delete(0, tk.END)
+            self.veconomico.insert(0, txt.strip())
+        except tk.TclError:
+            pass
+
+    def _borrar_todo(self):
+        self.veconomico.delete(0, tk.END)
+        self.veconomico.insert(0, "0,00")
+        self.partes.config(state="normal")
+        self.partes.delete(0, tk.END)
+        self.partes.config(state="disabled")
+        for key, e in self.entries.items():
+            if key.startswith("notros"):
+                e.config(state="normal")
+                e.delete(0, tk.END)
+                e.insert(0, "Otros:")
+                e.config(state="disabled")
+            elif key.startswith("otros") or key in ("arancel", "certificado", "aportes1", "aportes2",
+                                                     "anotacion", "goperativo", "protoley", "total"):
+                e.config(state="normal")
+                e.delete(0, tk.END)
+                e.insert(0, "0,00")
+                e.config(state="disabled")
+            elif key == "reposicion" and self.TIENE_REPOSICION:
+                e.config(state="normal")
+                e.delete(0, tk.END)
+                e.insert(0, "0,00")
+                e.config(state="disabled")
+        self.aplicadamitad = False
+        self.btn_bajar.config(bg="#c0c0c0", state="disabled")
+
+    def _imprimir(self):
+        """Override en subclases para llamar a impresion."""
+        pass
+
+    def _config(self):
+        from ui.configuracion import ConfiguracionDialog
+        ConfiguracionDialog(self.win)
+
+    def _about(self):
+        from ui.about import AboutDialog
+        AboutDialog(self.win)
+
+    def _on_salir(self):
+        self.win.destroy()
+        self.on_volver()
+
+    def show(self):
+        self.win.deiconify()
+        self.win.lift()
+        self.win.focus_force()
