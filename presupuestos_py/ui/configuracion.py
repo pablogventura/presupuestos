@@ -2,7 +2,7 @@
 Diálogo de configuración.
 """
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 import config
 
@@ -78,6 +78,22 @@ class ConfiguracionDialog:
         self.margen.insert(0, config.get("Impresion", "MargenSuperior", "4000"))
 
     def _aceptar(self):
+        margen_val = self.margen.get().strip()
+        if not margen_val:
+            messagebox.showerror("Error", "El margen superior no puede estar vacío.")
+            return
+        try:
+            t = margen_val.replace(".", "").replace(",", ".")
+            v = float(t)
+        except ValueError:
+            messagebox.showerror(
+                "Error",
+                "El margen superior debe ser un número válido (ej: 4000 o 4.000).",
+            )
+            return
+        if v < 0:
+            messagebox.showerror("Error", "El margen superior debe ser un número positivo.")
+            return
         config.set_value("Escribania", "Nombre", self.nombre.get())
         config.set_value("Escribania", "Direccion", self.direccion.get())
         config.set_value("Escribania", "Telefonoemail", self.telefono.get())

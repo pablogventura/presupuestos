@@ -1,16 +1,16 @@
 """Tests para fórmulas de cálculo (Venta, Donación, etc.)."""
 import pytest
 
-from ui.base_presupuesto import _parse_decimal
+import formatos
 import datos
 
 
 def test_parse_decimal():
-    """_parse_decimal convierte formato argentino a float."""
-    assert _parse_decimal("1.234,56") == 1234.56
-    assert _parse_decimal("100") == 100.0
-    assert _parse_decimal("0,00") == 0.0
-    assert _parse_decimal("abc") == 0.0
+    """formatos.parse_decimal convierte formato argentino a float."""
+    assert formatos.parse_decimal("1.234,56") == 1234.56
+    assert formatos.parse_decimal("100") == 100.0
+    assert formatos.parse_decimal("0,00") == 0.0
+    assert formatos.parse_decimal("abc") == 0.0
 
 
 def test_formula_venta():

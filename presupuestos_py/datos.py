@@ -2,30 +2,16 @@
 Módulo de datos: formato decimal con coma y generación HTML.
 Migrado desde Module1.bas (Datos).
 """
+import formatos
 
 
-def agrega_decimales(numero: str) -> str:
+def agrega_decimales(numero) -> str:
     """
     Formatea un número con coma decimal y siempre 2 decimales.
+    Acepta float o string (incl. formato argentino "1.234,56").
     Ej: 1234.5 -> "1.234,50"
     """
-    try:
-        valor = float(str(numero).replace(",", "."))
-    except ValueError:
-        return "0,00"
-    redondeado = round(valor, 2)
-    partes = f"{redondeado:.2f}".split(".")
-    entero = partes[0]
-    decimal = partes[1]
-    # Formato argentino: miles con punto, decimales con coma
-    if len(entero) > 3:
-        entero_formateado = ""
-        for i, c in enumerate(reversed(entero)):
-            if i > 0 and i % 3 == 0:
-                entero_formateado = "." + entero_formateado
-            entero_formateado = c + entero_formateado
-        entero = entero_formateado
-    return f"{entero},{decimal}"
+    return formatos.formatear_decimal(numero)
 
 
 def gen_html(

@@ -6,14 +6,7 @@ from tkinter import ttk, messagebox, filedialog
 
 import config
 import datos
-
-
-def _parse_decimal(s: str) -> float:
-    """Convierte string con coma decimal a float."""
-    try:
-        return float(str(s).replace(".", "").replace(",", "."))
-    except ValueError:
-        return 0.0
+import formatos
 
 
 class BasePresupuestoWindow:
@@ -56,6 +49,14 @@ class BasePresupuestoWindow:
         self.veconomico.insert(0, "0,00")
         self.veconomico.pack(anchor=tk.W)
         self.veconomico.bind("<FocusIn>", lambda e: self.veconomico.select_range(0, tk.END))
+        self.veconomico.bind("<FocusOut>", self._on_ve_focusout)
+        self.veconomico.bind("<Return>", lambda e: self._calcular())
+        self._lbl_ve_error = ttk.Label(frame_ve, text="", foreground="red")
+        self._lbl_ve_error.pack(anchor=tk.W)
+
+        # Atajos de teclado globales
+        self.win.bind("<Control-s>", self._on_ctrl_s)
+        self.win.bind("<Control-q>", self._on_ctrl_q)
 
         # Partes + Calcular
         frame_top = ttk.Frame(self.win, padding=5)
@@ -142,13 +143,47 @@ class BasePresupuestoWindow:
         self.notros2 = self.entries["notros2"]
         self.notros3 = self.entries["notros3"]
 
+        # Recalcular Total al editar campos (tras Calcular)
+        for key in ("arancel", "certificado", "aportes1", "aportes2", "anotacion",
+                    "goperativo", "protoley", "otros1", "otros2", "otros3"):
+            if key in self.entries:
+                self.entries[key].bind("<FocusOut>", self._actualizar_total)
+        if self.TIENE_REPOSICION and "reposicion" in self.entries:
+            self.entries["reposicion"].bind("<FocusOut>", self._actualizar_total)
+
         # Botón Imprimir
         ttk.Button(frame_pre, text="Imprimir (PDF)", command=self._imprimir).pack(
             pady=10, anchor=tk.W
         )
 
     def _get_ve(self) -> float:
-        return _parse_decimal(self.veconomico.get())
+        return formatos.parse_decimal(self.veconomico.get())
+
+    def _on_ve_focusout(self, event=None):
+        """Valida Valor económico al perder foco."""
+        val = self.veconomico.get().strip()
+        if not val:
+            self._lbl_ve_error.config(text="")
+            return
+        v = formatos.parse_decimal(val)
+        if v == 0 and val.lower() not in ("0", "0,00", "0.00", "0,0", "0.0"):
+            self._lbl_ve_error.config(text="Valor no numérico")
+        else:
+            self._lbl_ve_error.config(text="")
+
+    def _on_ctrl_s(self, event):
+        self._exportar_html()
+        return "break"
+
+    def _on_ctrl_q(self, event):
+        self._on_salir()
+        return "break"
+
+    def _actualizar_total(self, event=None):
+        """Actualiza el Total si los campos de monto están habilitados."""
+        if self.total.cget("state") == "normal":
+            self.total.delete(0, tk.END)
+            self.total.insert(0, self._sumar_todo())
 
     def _set_entry(self, key: str, valor: str):
         e = self.entries.get(key)
@@ -163,14 +198,14 @@ class BasePresupuestoWindow:
         pass
 
     def _sumar_todo(self) -> str:
-        total_val = _parse_decimal(self.arancel.get()) + _parse_decimal(self.certificado.get())
-        total_val += _parse_decimal(self.aportes1.get()) + _parse_decimal(self.aportes2.get())
-        total_val += _parse_decimal(self.anotacion.get()) + _parse_decimal(self.goperativo.get())
-        total_val += _parse_decimal(self.protoley.get())
-        total_val += _parse_decimal(self.otros1.get()) + _parse_decimal(self.otros2.get()) + _parse_decimal(self.otros3.get())
+        total_val = formatos.parse_decimal(self.arancel.get()) + formatos.parse_decimal(self.certificado.get())
+        total_val += formatos.parse_decimal(self.aportes1.get()) + formatos.parse_decimal(self.aportes2.get())
+        total_val += formatos.parse_decimal(self.anotacion.get()) + formatos.parse_decimal(self.goperativo.get())
+        total_val += formatos.parse_decimal(self.protoley.get())
+        total_val += formatos.parse_decimal(self.otros1.get()) + formatos.parse_decimal(self.otros2.get()) + formatos.parse_decimal(self.otros3.get())
         if self.TIENE_REPOSICION:
-            total_val += _parse_decimal(self.reposicion.get())
-        return datos.agrega_decimales(str(total_val))
+            total_val += formatos.parse_decimal(self.reposicion.get())
+        return formatos.formatear_decimal(total_val)
 
     def _habilitar_campos(self):
         for key in ("arancel", "certificado", "aportes1", "aportes2", "anotacion",
@@ -184,8 +219,8 @@ class BasePresupuestoWindow:
 
     def _bajar_arancel(self):
         if not self.aplicadamitad:
-            val = _parse_decimal(self.arancel.get()) / 2
-            self._set_entry("arancel", datos.agrega_decimales(str(val)))
+            val = formatos.parse_decimal(self.arancel.get()) / 2
+            self._set_entry("arancel", formatos.formatear_decimal(val))
             self.total.delete(0, tk.END)
             self.total.insert(0, self._sumar_todo())
             self.aplicadamitad = True
@@ -200,14 +235,19 @@ class BasePresupuestoWindow:
             filetypes=[("Página Web (*.htm)", "*.htm"), ("Todos", "*.*")],
         )
         if path:
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(html)
+            try:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(html)
+                messagebox.showinfo("Exportar HTML", "Archivo guardado correctamente.")
+            except OSError as e:
+                messagebox.showerror("Error", f"No se pudo guardar el archivo.\n\n{e}")
 
     def _copiar_html(self):
         html = self._get_html()
         if html:
             self.win.clipboard_clear()
             self.win.clipboard_append(html)
+            messagebox.showinfo("Copiar", "HTML copiado al portapapeles.")
 
     def _get_html(self) -> str:
         """Override en subclases según USA_GEN_HTML."""

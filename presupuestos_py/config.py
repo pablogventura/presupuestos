@@ -6,6 +6,8 @@ import configparser
 import os
 import sys
 
+import formatos
+
 CONFIG_FILENAME = "presupuestos.ini"
 DEFAULT_VALUES = {
     "Escribania": {
@@ -15,6 +17,18 @@ DEFAULT_VALUES = {
     },
     "Impresion": {
         "MargenSuperior": "4000",
+    },
+    "Presupuesto": {
+        "certificado_base": "700",
+        "goperativo": "1000",
+        "protoley": "150",
+        "tasa_arancel": "0.02",
+        "arancel_fijo": "27.7",
+        "reposicion_minimo": "30",
+        "reposicion_porcentaje": "0.01",
+        "anotacion_minimo": "30",
+        "anotacion_porcentaje": "0.002",
+        "aportes2_porcentaje": "0.003",
     },
 }
 
@@ -41,6 +55,42 @@ def get(section: str, key: str, default: str = "") -> str:
     if section in DEFAULT_VALUES and key in DEFAULT_VALUES[section]:
         return DEFAULT_VALUES[section][key]
     return default if default else ""
+
+
+def get_escribania() -> dict:
+    """Devuelve nombre, direccion y telefono de la escribanía."""
+    return {
+        "nombre": get("Escribania", "Nombre", "Ventura"),
+        "direccion": get(
+            "Escribania",
+            "Direccion",
+            'Corrientes 5 - 4º "A"',
+        ),
+        "telefono": get(
+            "Escribania",
+            "Telefonoemail",
+            "Te: 4255715 - e-mail: gabventura@arnet.com.ar",
+        ),
+    }
+
+
+def get_presupuesto_defaults() -> dict:
+    """Devuelve constantes de presupuesto (certificado_base, goperativo, etc.)."""
+    def _f(key: str, default: str) -> float:
+        return formatos.parse_decimal(get("Presupuesto", key, default))
+
+    return {
+        "certificado_base": _f("certificado_base", "700"),
+        "goperativo": _f("goperativo", "1000"),
+        "protoley": _f("protoley", "150"),
+        "tasa_arancel": _f("tasa_arancel", "0.02"),
+        "arancel_fijo": _f("arancel_fijo", "27.7"),
+        "reposicion_minimo": _f("reposicion_minimo", "30"),
+        "reposicion_porcentaje": _f("reposicion_porcentaje", "0.01"),
+        "anotacion_minimo": _f("anotacion_minimo", "30"),
+        "anotacion_porcentaje": _f("anotacion_porcentaje", "0.002"),
+        "aportes2_porcentaje": _f("aportes2_porcentaje", "0.003"),
+    }
 
 
 def set_value(section: str, key: str, value: str) -> None:

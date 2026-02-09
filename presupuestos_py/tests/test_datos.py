@@ -19,6 +19,10 @@ class TestAgregaDecimales:
         """Entrada en formato 1234,56 (coma decimal) debe funcionar."""
         assert datos.agrega_decimales("1234,56") == "1.234,56"
 
+    def test_formato_argentino_con_miles(self):
+        """Entrada en formato 1.234,56 (miles con punto) debe funcionar."""
+        assert datos.agrega_decimales("1.234,56") == "1.234,56"
+
     def test_valor_invalido(self):
         assert datos.agrega_decimales("abc") == "0,00"
 

@@ -6,7 +6,8 @@ from tkinter import messagebox
 
 import config
 import datos
-from ui.base_presupuesto import BasePresupuestoWindow, _parse_decimal
+import formatos
+from ui.base_presupuesto import BasePresupuestoWindow
 from impresion import dibujar_cesion
 
 
@@ -17,33 +18,34 @@ class CesiondWindow(BasePresupuestoWindow):
 
     def _calcular(self):
         try:
-            ve = _parse_decimal(self.veconomico.get())
+            ve = formatos.parse_decimal(self.veconomico.get())
         except ValueError:
             messagebox.showerror("Error", "El Valor económico debe ser numérico")
             return
         if self._validar_otros():
             return
+        d = config.get_presupuesto_defaults()
         ve_str = datos.agrega_decimales(str(ve))
         self.veconomico.delete(0, tk.END)
         self.veconomico.insert(0, ve_str)
-        arancel = ve * 0.02 + 27.7
+        arancel = ve * d["tasa_arancel"] + d["arancel_fijo"]
         self._set_entry("arancel", datos.agrega_decimales(str(arancel)))
-        self._set_entry("certificado", "700,00")
+        self._set_entry("certificado", formatos.formatear_decimal(d["certificado_base"]))
         self._set_entry("aportes1", datos.agrega_decimales(str((arancel / 2) * 0.18)))
-        self._set_entry("aportes2", datos.agrega_decimales(str(ve * 0.003)))
-        repos = max(ve * 0.01, 30)
+        self._set_entry("aportes2", datos.agrega_decimales(str(ve * d["aportes2_porcentaje"])))
+        repos = max(ve * d["reposicion_porcentaje"], d["reposicion_minimo"])
         self._set_entry("reposicion", datos.agrega_decimales(str(repos)))
-        anot = max(ve * 0.002, 30)
+        anot = max(ve * d["anotacion_porcentaje"], d["anotacion_minimo"])
         self._set_entry("anotacion", datos.agrega_decimales(str(anot)))
-        self._set_entry("goperativo", "1.000,00")
-        self._set_entry("protoley", "150,00")
+        self._set_entry("goperativo", formatos.formatear_decimal(d["goperativo"]))
+        self._set_entry("protoley", formatos.formatear_decimal(d["protoley"]))
         self._set_entry("total", self._sumar_todo())
         self._habilitar_campos()
 
     def _validar_otros(self) -> bool:
         for i in (1, 2, 3):
             try:
-                _parse_decimal(self.entries[f"otros{i}"].get())
+                formatos.parse_decimal(self.entries[f"otros{i}"].get())
             except ValueError:
                 messagebox.showerror(
                     "Error",
@@ -53,11 +55,11 @@ class CesiondWindow(BasePresupuestoWindow):
         return False
 
     def _get_html(self) -> str:
-        esc = "Escribanía " + config.get("Escribania", "Nombre", "Ventura")
+        esc = config.get_escribania()
         return datos.gen_html(
-            esc,
-            config.get("Escribania", "Direccion", 'Corrientes 5 - 4º "A"'),
-            config.get("Escribania", "Telefonoemail", "Te: 4255715 - e-mail: gabventura@arnet.com.ar"),
+            "Escribanía " + esc["nombre"],
+            esc["direccion"],
+            esc["telefono"],
             self.partes.get(),
             self.veconomico.get(),
             self.arancel.get(),

@@ -8,6 +8,7 @@ import sys
 import tempfile
 
 import config
+import formatos
 
 # Twips a points: 1440 twips = 1 inch, 72 points = 1 inch => 1 twip = 72/1440 = 0.05 pts
 TWIPS_TO_POINTS = 72 / 1440
@@ -17,14 +18,18 @@ def _twips_to_pts(twips: float) -> float:
     return float(twips) * TWIPS_TO_POINTS
 
 
-def _abrir_pdf(ruta: str) -> None:
-    """Abre el PDF en el visor por defecto."""
-    if sys.platform == "win32":
-        os.startfile(ruta)
-    elif sys.platform == "darwin":
-        subprocess.run(["open", ruta], check=False)
-    else:
-        subprocess.run(["xdg-open", ruta], check=False)
+def _abrir_pdf(ruta: str) -> bool:
+    """Abre el PDF en el visor por defecto. Devuelve True si ok, False si falló."""
+    try:
+        if sys.platform == "win32":
+            os.startfile(ruta)
+        elif sys.platform == "darwin":
+            subprocess.run(["open", ruta], check=False)
+        else:
+            subprocess.run(["xdg-open", ruta], check=False)
+        return True
+    except Exception:
+        return False
 
 
 def _escribir(canvas, texto: str, fuente: str, tamano: float, posx: str, y: float, alineacion: int = 2):
@@ -73,9 +78,10 @@ def _generar_pdf(
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas
 
-    nombre = config.get("Escribania", "Nombre", "Ventura")
-    direccion = config.get("Escribania", "Direccion", 'Corrientes 5 - 4º "A"')
-    telefono = config.get("Escribania", "Telefonoemail", "Te: 4255715 - e-mail: gabventura@arnet.com.ar")
+    esc = config.get_escribania()
+    nombre = esc["nombre"]
+    direccion = esc["direccion"]
+    telefono = esc["telefono"]
     margen = _twips_to_pts(config.get("Impresion", "MargenSuperior", "4000"))
 
     f, ruta = tempfile.mkstemp(suffix=".pdf")
@@ -85,8 +91,7 @@ def _generar_pdf(
     # Origen abajo-izquierda
     y = alto - margen
 
-    escribania_txt = "Escribanía " if bajar_arancel else "Escribanía "
-    escribania_txt += nombre
+    escribania_txt = ("Escribanía" if bajar_arancel else "Escribanía ") + nombre
 
     _escribir(c, escribania_txt, "Times-Roman", 18, "centro", y)
     y -= 20
@@ -119,21 +124,12 @@ def _generar_pdf(
     fila("Anotación:", anotacion)
     fila("Gasto operativo:", goperativo)
     fila("Protocolo Ley 9343:", protoley)
-    try:
-        if float(otros1.replace(",", ".")) != 0:
-            fila(notros1, otros1)
-    except ValueError:
-        pass
-    try:
-        if float(otros2.replace(",", ".")) != 0:
-            fila(notros2, otros2)
-    except ValueError:
-        pass
-    try:
-        if float(otros3.replace(",", ".")) != 0:
-            fila(notros3, otros3)
-    except ValueError:
-        pass
+    if formatos.parse_decimal(otros1) != 0:
+        fila(notros1, otros1)
+    if formatos.parse_decimal(otros2) != 0:
+        fila(notros2, otros2)
+    if formatos.parse_decimal(otros3) != 0:
+        fila(notros3, otros3)
     y -= 5
     fila("Total:", total)
 
@@ -153,7 +149,12 @@ def dibujar_venta(
         otros1, otros2, otros3, notros1, notros2, notros3, total,
         bajar_arancel, True, reposicion,
     )
-    _abrir_pdf(ruta)
+    if not _abrir_pdf(ruta):
+        from tkinter import messagebox
+        messagebox.showwarning(
+            "PDF generado",
+            f"No se pudo abrir el visor de PDF.\n\nEl archivo se guardó en:\n{ruta}",
+        )
 
 
 def dibujar_donacion(
@@ -168,7 +169,12 @@ def dibujar_donacion(
         otros1, otros2, otros3, notros1, notros2, notros3, total,
         bajar_arancel, False,
     )
-    _abrir_pdf(ruta)
+    if not _abrir_pdf(ruta):
+        from tkinter import messagebox
+        messagebox.showwarning(
+            "PDF generado",
+            f"No se pudo abrir el visor de PDF.\n\nEl archivo se guardó en:\n{ruta}",
+        )
 
 
 def dibujar_cesion(
@@ -183,7 +189,12 @@ def dibujar_cesion(
         otros1, otros2, otros3, notros1, notros2, notros3, total,
         bajar_arancel, True, reposicion,
     )
-    _abrir_pdf(ruta)
+    if not _abrir_pdf(ruta):
+        from tkinter import messagebox
+        messagebox.showwarning(
+            "PDF generado",
+            f"No se pudo abrir el visor de PDF.\n\nEl archivo se guardó en:\n{ruta}",
+        )
 
 
 def dibujar_particion(
@@ -198,4 +209,9 @@ def dibujar_particion(
         otros1, otros2, otros3, notros1, notros2, notros3, total,
         bajar_arancel, False,
     )
-    _abrir_pdf(ruta)
+    if not _abrir_pdf(ruta):
+        from tkinter import messagebox
+        messagebox.showwarning(
+            "PDF generado",
+            f"No se pudo abrir el visor de PDF.\n\nEl archivo se guardó en:\n{ruta}",
+        )
