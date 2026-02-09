@@ -31,7 +31,7 @@ def show_splash(root: tk.Tk):
 
     tk.Label(frame, text="Presupuestos", font=("Arial", 24, "bold")).pack(anchor=tk.W)
     tk.Label(frame, text=f"Versión {VERSION}", font=("Arial", 12, "bold")).pack(anchor=tk.E)
-    tk.Label(frame, text="© Pablo Ventura 2004", font=("Arial", 8)).pack(side=tk.BOTTOM, anchor=tk.W)
+    tk.Label(frame, text="© Pablo Ventura 2003-2026", font=("Arial", 8)).pack(side=tk.BOTTOM, anchor=tk.W)
 
     # Icono
     try:

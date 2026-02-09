@@ -21,7 +21,7 @@ class AboutDialog:
         ttk.Label(frame, text="Presupuestos", font=("", 14, "bold")).pack(anchor=tk.W)
         ttk.Label(frame, text=f"Versión {VERSION}").pack(anchor=tk.W)
         ttk.Label(frame, text="Contacto: pablogventura@gmail.com").pack(anchor=tk.W)
-        ttk.Label(frame, text="© Pablo Ventura 2003-2011").pack(anchor=tk.W, pady=(10, 0))
+        ttk.Label(frame, text="© Pablo Ventura 2003-2026").pack(anchor=tk.W, pady=(10, 0))
 
         ttk.Button(frame, text="Aceptar", command=self.win.destroy).pack(pady=10)
         self.win.wait_window()

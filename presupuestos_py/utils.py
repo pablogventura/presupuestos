@@ -4,7 +4,7 @@ Utilidades: rutas de assets, detección de plataforma.
 import os
 import sys
 
-VERSION = "5.1.0"
+VERSION = "6.0.0"
 
 
 def get_asset_path(filename: str) -> str:

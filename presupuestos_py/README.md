@@ -113,4 +113,4 @@ presupuestos_py/
 
 ## Licencia
 
-© Pablo Ventura 2004
+© Pablo Ventura 2003-2026
