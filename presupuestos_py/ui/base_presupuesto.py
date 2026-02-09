@@ -27,6 +27,7 @@ class BasePresupuestoWindow:
         self.win.protocol("WM_DELETE_WINDOW", self._on_salir)
 
         self.aplicadamitad = False
+        self._calculado = False
         self.entries = {}  # nombre -> Entry
 
         # Menú
@@ -55,13 +56,14 @@ class BasePresupuestoWindow:
         self.veconomico.pack(anchor=tk.W)
         self.veconomico.bind("<FocusIn>", lambda e: self.veconomico.select_range(0, tk.END))
         self.veconomico.bind("<FocusOut>", self._on_ve_focusout)
-        self.veconomico.bind("<Return>", lambda e: self._calcular())
+        self.veconomico.bind("<Return>", self._on_return)
         self._lbl_ve_error = ttk.Label(frame_ve, text="", foreground="red")
         self._lbl_ve_error.pack(anchor=tk.W)
 
         # Atajos de teclado globales
         self.win.bind("<Control-s>", self._on_ctrl_s)
         self.win.bind("<Control-q>", self._on_ctrl_q)
+        self.win.bind("<Return>", self._on_return)
 
         # Partes + Calcular
         frame_top = ttk.Frame(self.win, padding=5)
@@ -70,7 +72,7 @@ class BasePresupuestoWindow:
         frame_partes.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.partes = ttk.Entry(frame_partes, width=35)
         self.partes.pack(fill=tk.X)
-        self.partes.config(state="disabled")
+        self.partes.bind("<Return>", self._on_return)
         ttk.Button(frame_top, text="Calcular", command=self._calcular).pack(
             side=tk.RIGHT, padx=5
         )
@@ -165,6 +167,20 @@ class BasePresupuestoWindow:
     def _get_ve(self) -> float:
         return formatos.parse_decimal(self.veconomico.get())
 
+    def _on_return(self, event=None):
+        """Enter: valor económico → partes → calcular → imprimir."""
+        focus = self.win.focus_get()
+        if focus == self.veconomico:
+            self.partes.focus_set()
+            return "break"
+        if focus == self.partes:
+            self._calcular()
+            return "break"
+        # Tras calcular, Enter en cualquier campo → imprimir
+        if self._calculado:
+            self._imprimir()
+            return "break"
+
     def _on_ve_focusout(self, event=None):
         """Valida Valor económico al perder foco."""
         val = self.veconomico.get().strip()
@@ -236,6 +252,7 @@ class BasePresupuestoWindow:
 
     def _aplicar_calculo(self, ve: float) -> None:
         """Aplica valores calculados a los campos y habilita edición."""
+        self._calculado = True
         vals = self._calcular_base(ve)
         self.veconomico.delete(0, tk.END)
         self.veconomico.insert(0, formatos.formatear_decimal(ve))
@@ -243,6 +260,7 @@ class BasePresupuestoWindow:
             self._set_entry(key, valor)
         self._set_entry("total", self._sumar_todo())
         self._habilitar_campos()
+        self.total.focus_set()
 
     def _sumar_todo(self) -> str:
         total_val = formatos.parse_decimal(self.arancel.get()) + formatos.parse_decimal(self.certificado.get())
@@ -311,11 +329,11 @@ class BasePresupuestoWindow:
             pass
 
     def _borrar_todo(self):
+        self._calculado = False
         self.veconomico.delete(0, tk.END)
         self.veconomico.insert(0, "0,00")
         self.partes.config(state="normal")
         self.partes.delete(0, tk.END)
-        self.partes.config(state="disabled")
         for key, e in self.entries.items():
             if key.startswith("notros"):
                 e.config(state="normal")
@@ -335,6 +353,7 @@ class BasePresupuestoWindow:
                 e.config(state="disabled")
         self.aplicadamitad = False
         self.btn_bajar.config(bg="#c0c0c0", state="disabled")
+        self.veconomico.focus_set()
 
     def _imprimir(self):
         """Override en subclases para llamar a impresion."""
@@ -371,3 +390,4 @@ class BasePresupuestoWindow:
         self.win.deiconify()
         self.win.lift()
         self.win.focus_force()
+        self.veconomico.focus_set()
