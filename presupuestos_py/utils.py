@@ -16,6 +16,16 @@ def get_asset_path(filename: str) -> str:
     return os.path.join(base, "assets", filename)
 
 
+def centrar_ventana(win) -> None:
+    """Centra una ventana Toplevel en la pantalla."""
+    win.update_idletasks()
+    w = win.winfo_reqwidth()
+    h = win.winfo_reqheight()
+    x = (win.winfo_screenwidth() - w) // 2
+    y = (win.winfo_screenheight() - h) // 2
+    win.geometry(f"+{x}+{y}")
+
+
 def get_icon_path() -> str:
     """Devuelve la ruta del icono según plataforma (.ico Windows, .png Linux)."""
     import platform

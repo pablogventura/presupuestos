@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 import config
+from utils import centrar_ventana
 
 
 def _twips_a_unidad(twips: float, unidad: str) -> float:
@@ -77,6 +78,7 @@ class ConfiguracionDialog:
         )
 
         self._cargar()
+        centrar_ventana(self.win)
         self.win.wait_window()
 
     def _cargar(self):

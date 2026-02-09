@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 from tkinter import ttk, messagebox, filedialog
 
 import config
+from utils import centrar_ventana
 import datos
 import formatos
 
@@ -366,6 +367,7 @@ class BasePresupuestoWindow:
         self.on_volver()
 
     def show(self):
+        centrar_ventana(self.win)
         self.win.deiconify()
         self.win.lift()
         self.win.focus_force()

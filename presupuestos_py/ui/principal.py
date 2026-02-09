@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 from ui.configuracion import ConfiguracionDialog
+from utils import centrar_ventana
 from ui.venta import VentaWindow
 from ui.donacion import DonacionWindow
 from ui.cesiond import CesiondWindow
@@ -42,6 +43,7 @@ class PrincipalWindow:
         ttk.Button(frame_btn, text="Salir", command=self._on_salir).pack(side=tk.LEFT)
 
         self._op_window = None
+        centrar_ventana(self.win)
 
     def _on_operacion(self, event=None):
         op = self.cbo.get()

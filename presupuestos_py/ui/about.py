@@ -4,7 +4,7 @@ Diálogo Acerca de.
 import tkinter as tk
 from tkinter import ttk
 
-from utils import VERSION
+from utils import VERSION, centrar_ventana
 
 
 class AboutDialog:
@@ -24,4 +24,5 @@ class AboutDialog:
         ttk.Label(frame, text="© Pablo Ventura 2003-2026").pack(anchor=tk.W, pady=(10, 0))
 
         ttk.Button(frame, text="Aceptar", command=self.win.destroy).pack(pady=10)
+        centrar_ventana(self.win)
         self.win.wait_window()
