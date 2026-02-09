@@ -1,0 +1,35 @@
+# Genera Presupuestos.exe para Windows (PyInstaller)
+# Se ejecuta manualmente o al hacer push a main/master
+
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        working-directory: presupuestos_py
+        run: pip install -r requirements.txt
+
+      - name: Generar EXE con PyInstaller
+        working-directory: presupuestos_py
+        run: pyinstaller build.spec
+
+      - name: Subir artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: Presupuestos-Windows
+          path: presupuestos_py/dist/Presupuestos.exe
