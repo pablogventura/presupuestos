@@ -2,7 +2,10 @@
 Presupuestos - Punto de entrada.
 Migrado desde VB6 Presupuestos.
 """
+import logging
 import os
+
+logging.basicConfig(level=logging.WARNING, format="%(name)s: %(message)s")
 import tkinter as tk
 from tkinter import messagebox
 

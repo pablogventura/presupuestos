@@ -2,11 +2,13 @@
 Impresión: genera PDF con ReportLab y lo abre en el visor del sistema.
 Migrado desde Module2.bas (Impresion).
 """
+import logging
 import os
+
+logger = logging.getLogger(__name__)
 import subprocess
 import sys
 import tempfile
-
 import config
 import formatos
 
@@ -28,7 +30,8 @@ def _abrir_pdf(ruta: str) -> bool:
         else:
             subprocess.run(["xdg-open", ruta], check=False)
         return True
-    except Exception:
+    except Exception as e:
+        logger.warning("No se pudo abrir el visor de PDF: %s", e)
         return False
 
 
@@ -73,8 +76,9 @@ def _generar_pdf(
     bajar_arancel: bool,
     tiene_reposicion: bool,
     reposicion: str = "0,00",
+    ruta_destino: str | None = None,
 ) -> str:
-    """Genera el PDF y devuelve la ruta del archivo."""
+    """Genera el PDF y devuelve la ruta del archivo. Si ruta_destino, guarda allí."""
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas
 
@@ -84,9 +88,16 @@ def _generar_pdf(
     telefono = esc["telefono"]
     margen = _twips_to_pts(config.get("Impresion", "MargenSuperior", "4000"))
 
-    f, ruta = tempfile.mkstemp(suffix=".pdf")
-    os.close(f)
+    if ruta_destino:
+        ruta = ruta_destino
+    else:
+        f, ruta = tempfile.mkstemp(suffix=".pdf")
+        os.close(f)
     c = canvas.Canvas(ruta, pagesize=A4)
+    c.setTitle(titulo)
+    c.setAuthor(nombre)
+    c.setSubject("Presupuesto")
+    c.setCreator("Presupuestos")
     ancho, alto = A4
     # Origen abajo-izquierda
     y = alto - margen
@@ -134,6 +145,7 @@ def _generar_pdf(
     fila("Total:", total)
 
     c.save()
+    logger.info("PDF generado: %s", ruta)
     return ruta
 
 
@@ -141,77 +153,86 @@ def dibujar_venta(
     arancel, certificado, aportes1, aportes2, reposicion, anotacion,
     goperativo, protoley, otros1, otros2, otros3,
     notros1, notros2, notros3, total, partes, v_economico, bajar_arancel,
+    ruta_destino: str | None = None,
 ):
+    """Genera PDF de Venta. Si ruta_destino, guarda allí. Si no, usa temp y abre visor."""
     ruta = _generar_pdf(
         "Presupuesto - Escritura de Venta",
         partes, v_economico, arancel, certificado,
         aportes1, aportes2, anotacion, goperativo, protoley,
         otros1, otros2, otros3, notros1, notros2, notros3, total,
-        bajar_arancel, True, reposicion,
+        bajar_arancel, True, reposicion, ruta_destino=ruta_destino,
     )
-    if not _abrir_pdf(ruta):
-        from tkinter import messagebox
-        messagebox.showwarning(
-            "PDF generado",
-            f"No se pudo abrir el visor de PDF.\n\nEl archivo se guardó en:\n{ruta}",
-        )
+    if not ruta_destino:
+        if not _abrir_pdf(ruta):
+            from tkinter import messagebox
+            messagebox.showwarning(
+                "PDF generado",
+                f"No se pudo abrir el visor de PDF.\n\nEl archivo se guardó en:\n{ruta}",
+            )
 
 
 def dibujar_donacion(
     arancel, certificado, aportes1, aportes2, anotacion, goperativo,
     protoley, otros1, otros2, otros3, notros1, notros2, notros3,
     total, partes, v_economico, bajar_arancel,
+    ruta_destino: str | None = None,
 ):
     ruta = _generar_pdf(
         "Presupuesto - Donación",
         partes, v_economico, arancel, certificado,
         aportes1, aportes2, anotacion, goperativo, protoley,
         otros1, otros2, otros3, notros1, notros2, notros3, total,
-        bajar_arancel, False,
+        bajar_arancel, False, ruta_destino=ruta_destino,
     )
-    if not _abrir_pdf(ruta):
-        from tkinter import messagebox
-        messagebox.showwarning(
-            "PDF generado",
-            f"No se pudo abrir el visor de PDF.\n\nEl archivo se guardó en:\n{ruta}",
-        )
+    if not ruta_destino:
+        if not _abrir_pdf(ruta):
+            from tkinter import messagebox
+            messagebox.showwarning(
+                "PDF generado",
+                f"No se pudo abrir el visor de PDF.\n\nEl archivo se guardó en:\n{ruta}",
+            )
 
 
 def dibujar_cesion(
     arancel, certificado, aportes1, aportes2, reposicion, anotacion,
     goperativo, protoley, otros1, otros2, otros3,
     notros1, notros2, notros3, total, partes, v_economico, bajar_arancel,
+    ruta_destino: str | None = None,
 ):
     ruta = _generar_pdf(
         "Presupuesto - Escritura de Cesión de Derechos Onerosa",
         partes, v_economico, arancel, certificado,
         aportes1, aportes2, anotacion, goperativo, protoley,
         otros1, otros2, otros3, notros1, notros2, notros3, total,
-        bajar_arancel, True, reposicion,
+        bajar_arancel, True, reposicion, ruta_destino=ruta_destino,
     )
-    if not _abrir_pdf(ruta):
-        from tkinter import messagebox
-        messagebox.showwarning(
-            "PDF generado",
-            f"No se pudo abrir el visor de PDF.\n\nEl archivo se guardó en:\n{ruta}",
-        )
+    if not ruta_destino:
+        if not _abrir_pdf(ruta):
+            from tkinter import messagebox
+            messagebox.showwarning(
+                "PDF generado",
+                f"No se pudo abrir el visor de PDF.\n\nEl archivo se guardó en:\n{ruta}",
+            )
 
 
 def dibujar_particion(
     arancel, certificado, aportes1, aportes2, anotacion, goperativo,
     protoley, otros1, otros2, otros3, notros1, notros2, notros3,
     total, partes, v_economico, bajar_arancel,
+    ruta_destino: str | None = None,
 ):
     ruta = _generar_pdf(
         "Presupuesto - Partición o Adjudicación",
         partes, v_economico, arancel, certificado,
         aportes1, aportes2, anotacion, goperativo, protoley,
         otros1, otros2, otros3, notros1, notros2, notros3, total,
-        bajar_arancel, False,
+        bajar_arancel, False, ruta_destino=ruta_destino,
     )
-    if not _abrir_pdf(ruta):
-        from tkinter import messagebox
-        messagebox.showwarning(
-            "PDF generado",
-            f"No se pudo abrir el visor de PDF.\n\nEl archivo se guardó en:\n{ruta}",
-        )
+    if not ruta_destino:
+        if not _abrir_pdf(ruta):
+            from tkinter import messagebox
+            messagebox.showwarning(
+                "PDF generado",
+                f"No se pudo abrir el visor de PDF.\n\nEl archivo se guardó en:\n{ruta}",
+            )

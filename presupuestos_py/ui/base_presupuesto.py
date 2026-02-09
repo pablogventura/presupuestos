@@ -1,7 +1,10 @@
 """
 Clase base para formularios de presupuesto (Venta, Donación, Cesión, Partición).
 """
+import logging
 import tkinter as tk
+
+logger = logging.getLogger(__name__)
 from tkinter import ttk, messagebox, filedialog
 
 import config
@@ -31,6 +34,7 @@ class BasePresupuestoWindow:
         menu_archivo = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Archivo", menu=menu_archivo)
         menu_archivo.add_command(label="Exportar HTML...", command=self._exportar_html)
+        menu_archivo.add_command(label="Guardar PDF como...", command=self._guardar_pdf)
         menu_archivo.add_command(label="Salir", command=self._on_salir)
         menu_edicion = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Edición", menu=menu_edicion)
@@ -152,8 +156,9 @@ class BasePresupuestoWindow:
             self.entries["reposicion"].bind("<FocusOut>", self._actualizar_total)
 
         # Botón Imprimir
-        ttk.Button(frame_pre, text="Imprimir (PDF)", command=self._imprimir).pack(
-            pady=10, anchor=tk.W
+        r += 1
+        ttk.Button(frame_pre, text="Imprimir (PDF)", command=self._imprimir).grid(
+            row=r, column=0, columnspan=2, sticky=tk.W, pady=10
         )
 
     def _get_ve(self) -> float:
@@ -181,7 +186,9 @@ class BasePresupuestoWindow:
 
     def _actualizar_total(self, event=None):
         """Actualiza el Total si los campos de monto están habilitados."""
-        if self.total.cget("state") == "normal":
+        st = str(self.total.cget("state"))
+        habilitado = "normal" in st and "disabled" not in st
+        if habilitado:
             self.total.delete(0, tk.END)
             self.total.insert(0, self._sumar_todo())
 
@@ -193,9 +200,48 @@ class BasePresupuestoWindow:
             e.insert(0, valor)
             e.config(state="disabled")
 
+    def _calcular_base(self, ve: float) -> dict:
+        """
+        Calcula valores del presupuesto según valor económico.
+        Devuelve dict con arancel, certificado, aportes1, aportes2,
+        reposicion (si aplica), anotacion, goperativo, protoley.
+        """
+        d = config.get_presupuesto_defaults()
+        arancel = ve * d["tasa_arancel"] + d["arancel_fijo"]
+        vals = {
+            "arancel": datos.agrega_decimales(arancel),
+            "certificado": formatos.formatear_decimal(d["certificado_base"]),
+            "aportes1": datos.agrega_decimales((arancel / 2) * 0.18),
+            "aportes2": datos.agrega_decimales(ve * d["aportes2_porcentaje"]),
+            "anotacion": datos.agrega_decimales(max(ve * d["anotacion_porcentaje"], d["anotacion_minimo"])),
+            "goperativo": formatos.formatear_decimal(d["goperativo"]),
+            "protoley": formatos.formatear_decimal(d["protoley"]),
+        }
+        if self.TIENE_REPOSICION:
+            vals["reposicion"] = datos.agrega_decimales(
+                max(ve * d["reposicion_porcentaje"], d["reposicion_minimo"])
+            )
+        return vals
+
+    def _validar_otros(self) -> bool:
+        """Valida que los campos 'otros' sean numéricos. Retorna True si hay error."""
+        for i in (1, 2, 3):
+            formatos.parse_decimal(self.entries[f"otros{i}"].get())
+        return False
+
     def _calcular(self):
-        """Override en subclases."""
+        """Override en subclases si necesitan lógica específica."""
         pass
+
+    def _aplicar_calculo(self, ve: float) -> None:
+        """Aplica valores calculados a los campos y habilita edición."""
+        vals = self._calcular_base(ve)
+        self.veconomico.delete(0, tk.END)
+        self.veconomico.insert(0, formatos.formatear_decimal(ve))
+        for key, valor in vals.items():
+            self._set_entry(key, valor)
+        self._set_entry("total", self._sumar_todo())
+        self._habilitar_campos()
 
     def _sumar_todo(self) -> str:
         total_val = formatos.parse_decimal(self.arancel.get()) + formatos.parse_decimal(self.certificado.get())
@@ -238,8 +284,10 @@ class BasePresupuestoWindow:
             try:
                 with open(path, "w", encoding="utf-8") as f:
                     f.write(html)
+                logger.info("HTML exportado: %s", path)
                 messagebox.showinfo("Exportar HTML", "Archivo guardado correctamente.")
             except OSError as e:
+                logger.error("Error al exportar HTML: %s", e)
                 messagebox.showerror("Error", f"No se pudo guardar el archivo.\n\n{e}")
 
     def _copiar_html(self):
@@ -290,6 +338,20 @@ class BasePresupuestoWindow:
     def _imprimir(self):
         """Override en subclases para llamar a impresion."""
         pass
+
+    def _imprimir_a_archivo(self, path: str) -> None:
+        """Override en subclases: genera PDF en path."""
+        pass
+
+    def _guardar_pdf(self) -> None:
+        """Diálogo Guardar PDF como."""
+        path = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("PDF (*.pdf)", "*.pdf"), ("Todos", "*.*")],
+        )
+        if path:
+            self._imprimir_a_archivo(path)
+            messagebox.showinfo("Guardar PDF", "Archivo guardado correctamente.")
 
     def _config(self):
         from ui.configuracion import ConfiguracionDialog

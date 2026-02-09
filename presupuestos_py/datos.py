@@ -2,7 +2,10 @@
 Módulo de datos: formato decimal con coma y generación HTML.
 Migrado desde Module1.bas (Datos).
 """
+from pathlib import Path
+
 import formatos
+from jinja2 import Environment, FileSystemLoader
 
 
 def agrega_decimales(numero) -> str:
@@ -12,6 +15,13 @@ def agrega_decimales(numero) -> str:
     Ej: 1234.5 -> "1.234,50"
     """
     return formatos.formatear_decimal(numero)
+
+
+def _cargar_plantilla(nombre: str):
+    """Carga la plantilla Jinja2."""
+    ruta = Path(__file__).parent / "templates"
+    env = Environment(loader=FileSystemLoader(str(ruta)), autoescape=True)
+    return env.get_template(nombre)
 
 
 def gen_html(
@@ -37,17 +47,28 @@ def gen_html(
     tipo_operacion: str,
 ) -> str:
     """Genera HTML del presupuesto (Venta, Cesión, etc.)."""
-    q = '"'
-    nl = "\n"
-    s = f"""<html>{nl}{nl}<body>{nl}{nl}<p align={q}center{q}><font size={q}5{q}>{escribania}</font></p>{nl}<p align={q}center{q}><font size={q}4{q}>{direccion}</font></p>{nl}<p align={q}center{q}><font size={q}4{q}>{telefono}</font></p>{nl}<p align={q}center{q}><font size={q}4{q}>Presupuesto - {tipo_operacion}</font></p>{nl}<p align={q}center{q}>{partes}</p>{nl}<p align={q}center{q}>&nbsp;</p>{nl}<div align={q}center{q} style={q}width: 383; height: 209{q}>{nl}  <center>{nl}  <table border={q}1{q} cellpadding={q}0{q} cellspacing={q}0{q} style={q}border-collapse: collapse{q} bordercolor={q}#FFFFFF{q} width={q}256{q} height={q}1{q} id={q}AutoNumber1{q} align={q}right{q}>{nl}    <tr>{nl}      <td width={q}264{q} height={q}13{q} align={q}center{q}>{nl}      <p align={q}right{q}>Valor económico:</td>{nl}      <td width={q}79{q} height={q}13{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}13{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{v_economico}</span></td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}14{q} align={q}center{q}>{nl}      <p align={q}right{q}>Arancel:</td>{nl}      <td width={q}79{q} height={q}14{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}14{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{arancel}</span></td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}17{q} align={q}center{q}>{nl}      <p align={q}right{q}>Certificados:</td>{nl}      <td width={q}79{q} height={q}17{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}17{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{certificados}</span></td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}12{q} align={q}center{q}>{nl}      <p align={q}right{q}>Aportes (a):</td>{nl}      <td width={q}79{q} height={q}12{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}12{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{aportes1}</span></td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}14{q} align={q}center{q}>{nl}      <p align={q}right{q}>Aportes (<span lang={q}es{q}>b</span>):</td>{nl}<td width={q}79{q} height={q}14{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}14{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{aportes2}</span></td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>Reposición:</span></td>{nl}      <td width={q}79{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{reposicion}</span></td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}11{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>Anotación:</span></td>{nl}      <td width={q}79{q} height={q}11{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}11{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{anotacion}</span></td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}9{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>Gasto operativo:</span></td>{nl}      <td width={q}79{q} height={q}9{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}9{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{goperativo}</span></td>{nl}    </tr>{nl}"""
-    if otros1 != "0,00":
-        s += f"""    <tr>{nl}      <td width={q}264{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{notros1}</span></td>{nl}      <td width={q}79{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{otros1}</span></td>{nl}    </tr>"""
-    if otros2 != "0,00":
-        s += f"""    <tr>{nl}      <td width={q}264{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{notros2}</span></td>{nl}      <td width={q}79{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{otros2}</span></td>{nl}    </tr>"""
-    if otros3 != "0,00":
-        s += f"""    <tr>{nl}      <td width={q}264{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{notros3}</span></td>{nl}      <td width={q}79{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{otros3}</span></td>{nl}    </tr>"""
-    s += f"""    <tr>{nl}      <td width={q}264{q} height={q}8{q} align={q}center{q}>{nl}      </td>{nl}      <td width={q}79{q} height={q}8{q} align={q}center{q}>{nl}      </td>{nl}      <td width={q}173{q} height={q}8{q} align={q}center{q}>{nl}      </td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}16{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>Total:</span></td>{nl}      <td width={q}79{q} height={q}16{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}16{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{total}</span></td>{nl}    </tr>{nl}  </table>{nl}  <p>&nbsp;</p>{nl}  <p>&nbsp;</p>{nl}  <p>&nbsp;</p>{nl}  <p>&nbsp;</p>{nl}  <p>&nbsp;</p>{nl}  <p>&nbsp;</p>{nl}  </center>{nl}</div>{nl}{nl}</body>{nl}{nl}</html>"""
-    return s
+    otros = []
+    for nom, val in [(notros1, otros1), (notros2, otros2), (notros3, otros3)]:
+        if val != "0,00":
+            otros.append({"nombre": nom, "valor": val})
+    return _cargar_plantilla("presupuesto_venta.html").render(
+        escribania=escribania,
+        direccion=direccion,
+        telefono=telefono,
+        partes=partes,
+        v_economico=v_economico,
+        arancel=arancel,
+        certificados=certificados,
+        aportes1=aportes1,
+        aportes2=aportes2,
+        reposicion=reposicion,
+        anotacion=anotacion,
+        goperativo=goperativo,
+        total=total,
+        otros=otros,
+        tiene_reposicion=True,
+        tipo_operacion=tipo_operacion,
+    )
 
 
 def gen_html_donacion(
@@ -71,14 +92,25 @@ def gen_html_donacion(
     otros3: str,
 ) -> str:
     """Genera HTML del presupuesto de Donación (sin reposición)."""
-    q = '"'
-    nl = "\n"
-    s = f"""<html>{nl}{nl}<body>{nl}{nl}<p align={q}center{q}><font size={q}5{q}>{escribania}</font></p>{nl}<p align={q}center{q}><font size={q}4{q}>{direccion}</font></p>{nl}<p align={q}center{q}><font size={q}4{q}>{telefono}</font></p>{nl}<p align={q}center{q}><font size={q}4{q}>Presupuesto - Donación</font></p>{nl}<p align={q}center{q}>{partes}</p>{nl}<p align={q}center{q}>&nbsp;</p>{nl}<div align={q}center{q} style={q}width: 383; height: 209{q}>{nl}  <center>{nl}  <table border={q}1{q} cellpadding={q}0{q} cellspacing={q}0{q} style={q}border-collapse: collapse{q} bordercolor={q}#FFFFFF{q} width={q}256{q} height={q}1{q} id={q}AutoNumber1{q} align={q}right{q}>{nl}    <tr>{nl}      <td width={q}264{q} height={q}13{q} align={q}center{q}>{nl}      <p align={q}right{q}>Valor económico:</td>{nl}      <td width={q}79{q} height={q}13{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}13{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{v_economico}</span></td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}14{q} align={q}center{q}>{nl}      <p align={q}right{q}>Arancel:</td>{nl}      <td width={q}79{q} height={q}14{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}14{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{arancel}</span></td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}17{q} align={q}center{q}>{nl}      <p align={q}right{q}>Certificados:</td>{nl}      <td width={q}79{q} height={q}17{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}17{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{certificados}</span></td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}12{q} align={q}center{q}>{nl}      <p align={q}right{q}>Aportes (a):</td>{nl}      <td width={q}79{q} height={q}12{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}12{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{aportes1}</span></td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}14{q} align={q}center{q}>{nl}      <p align={q}right{q}>Aportes (<span lang={q}es{q}>b</span>):</td>{nl}<td width={q}79{q} height={q}14{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}14{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{aportes2}</span></td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}11{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>Anotación:</span></td>{nl}      <td width={q}79{q} height={q}11{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}11{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{anotacion}</span></td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}9{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>Gasto operativo:</span></td>{nl}      <td width={q}79{q} height={q}9{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}9{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{goperativo}</span></td>{nl}    </tr>{nl}"""
-    if otros1 != "0,00":
-        s += f"""    <tr>{nl}      <td width={q}264{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{notros1}</span></td>{nl}      <td width={q}79{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{otros1}</span></td>{nl}    </tr>"""
-    if otros2 != "0,00":
-        s += f"""    <tr>{nl}      <td width={q}264{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{notros2}</span></td>{nl}      <td width={q}79{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{otros2}</span></td>{nl}    </tr>"""
-    if otros3 != "0,00":
-        s += f"""    <tr>{nl}      <td width={q}264{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{notros3}</span></td>{nl}      <td width={q}79{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}10{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{otros3}</span></td>{nl}    </tr>"""
-    s += f"""    <tr>{nl}      <td width={q}264{q} height={q}8{q} align={q}center{q}>{nl}      </td>{nl}      <td width={q}79{q} height={q}8{q} align={q}center{q}>{nl}      </td>{nl}      <td width={q}173{q} height={q}8{q} align={q}center{q}>{nl}      </td>{nl}    </tr>{nl}    <tr>{nl}      <td width={q}264{q} height={q}16{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>Total:</span></td>{nl}      <td width={q}79{q} height={q}16{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>$</span></td>{nl}      <td width={q}173{q} height={q}16{q} align={q}center{q}>{nl}      <p align={q}right{q}><span lang={q}es{q}>{total}</span></td>{nl}    </tr>{nl}  </table>{nl}  <p>&nbsp;</p>{nl}  <p>&nbsp;</p>{nl}  <p>&nbsp;</p>{nl}  <p>&nbsp;</p>{nl}  <p>&nbsp;</p>{nl}  <p>&nbsp;</p>{nl}  </center>{nl}</div>{nl}{nl}</body>{nl}{nl}</html>"""
-    return s
+    otros = []
+    for nom, val in [(notros1, otros1), (notros2, otros2), (notros3, otros3)]:
+        if val != "0,00":
+            otros.append({"nombre": nom, "valor": val})
+    return _cargar_plantilla("presupuesto_venta.html").render(
+        escribania=escribania,
+        direccion=direccion,
+        telefono=telefono,
+        partes=partes,
+        v_economico=v_economico,
+        arancel=arancel,
+        certificados=certificados,
+        aportes1=aportes1,
+        aportes2=aportes2,
+        reposicion="0,00",
+        anotacion=anotacion,
+        goperativo=goperativo,
+        total=total,
+        otros=otros,
+        tiene_reposicion=False,
+        tipo_operacion="Donación",
+    )

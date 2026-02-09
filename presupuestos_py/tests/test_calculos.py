@@ -34,3 +34,18 @@ def test_formato_salida_venta():
     s = datos.agrega_decimales(str(arancel))
     assert "," in s
     assert "2.027,70" == s
+
+
+@pytest.mark.parametrize("ve,arancel_esperado,aportes1_esperado", [
+    (100_000, 2027.7, 182.49),
+    (50_000, 1027.7, 92.49),
+    (200_000, 4027.7, 362.49),
+    (10_000, 227.7, 20.49),
+])
+def test_formulas_venta_parametrizado(ve, arancel_esperado, aportes1_esperado):
+    """Fórmulas Venta con distintos valores económicos (usa constantes por defecto)."""
+    tasa, fijo = 0.02, 27.7
+    arancel = ve * tasa + fijo
+    aportes1 = (arancel / 2) * 0.18
+    assert abs(arancel - arancel_esperado) < 0.1
+    assert abs(aportes1 - aportes1_esperado) < 0.1

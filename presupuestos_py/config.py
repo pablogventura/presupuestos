@@ -17,6 +17,7 @@ DEFAULT_VALUES = {
     },
     "Impresion": {
         "MargenSuperior": "4000",
+        "MargenUnidad": "twips",  # twips | mm | pt
     },
     "Presupuesto": {
         "certificado_base": "700",

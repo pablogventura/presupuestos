@@ -11,6 +11,13 @@ block_cipher = None
 is_win = sys.platform == 'win32'
 icon_file = 'assets/icono.ico' if is_win else 'assets/icono.png'
 
+# Asegurar que templates y jinja2 se incluyan
+from PyInstaller.utils.hooks import collect_data_files
+
+extra_datas = list(collect_data_files('jinja2', include_py_files=False))
+if os.path.exists('templates'):
+    extra_datas.append(('templates', 'templates'))
+
 a = Analysis(
     ['main.py'],
     pathex=[],
@@ -18,7 +25,7 @@ a = Analysis(
     datas=[
         ('assets/icono.ico', 'assets'),
         ('assets/icono.png', 'assets'),
-    ],
+    ] + extra_datas,
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

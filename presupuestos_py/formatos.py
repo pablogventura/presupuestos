@@ -6,15 +6,18 @@ Centraliza la lógica usada en datos, impresion y base_presupuesto.
 
 def parse_decimal(s: str) -> float:
     """
-    Convierte string con formato argentino (1.234,56) a float.
-    Acepta: "1.234,56", "1234,56", "1234.56", "1234"
+    Convierte string a float. Soporta dos formatos:
+    - Con coma: argentino (1.234,56) → punto=miles, coma=decimal
+    - Sin coma: internacional (1234.56) → punto=decimal
     """
     try:
         t = str(s).strip()
         if not t:
             return 0.0
-        # Quitar separador de miles (punto), coma como decimal
-        t = t.replace(".", "").replace(",", ".")
+        if "," in t:
+            # Formato argentino: punto=miles, coma=decimal
+            t = t.replace(".", "").replace(",", ".")
+        # Si no hay coma, el punto ya es decimal (formato internacional)
         return float(t)
     except ValueError:
         return 0.0
