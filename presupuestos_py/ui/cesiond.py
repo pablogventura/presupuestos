@@ -47,6 +47,7 @@ class CesiondWindow(BasePresupuestoWindow):
         )
 
     def _imprimir(self):
+        self._formatear_todos_los_numeros()
         dibujar_cesion(
             self.arancel.get(), self.certificado.get(),
             self.aportes1.get(), self.aportes2.get(),

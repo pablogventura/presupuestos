@@ -150,13 +150,17 @@ class BasePresupuestoWindow:
         self.notros2 = self.entries["notros2"]
         self.notros3 = self.entries["notros3"]
 
-        # Recalcular Total al editar campos (tras Calcular)
-        for key in ("arancel", "certificado", "aportes1", "aportes2", "anotacion",
-                    "goperativo", "protoley", "otros1", "otros2", "otros3"):
+        # Formatear y recalcular Total al editar campos (tras Calcular)
+        self._claves_numericas = [
+            "arancel", "certificado", "aportes1", "aportes2", "anotacion",
+            "goperativo", "protoley", "otros1", "otros2", "otros3"
+        ]
+        if self.TIENE_REPOSICION:
+            self._claves_numericas.append("reposicion")
+        self._claves_numericas.append("total")
+        for key in self._claves_numericas:
             if key in self.entries:
-                self.entries[key].bind("<FocusOut>", self._actualizar_total)
-        if self.TIENE_REPOSICION and "reposicion" in self.entries:
-            self.entries["reposicion"].bind("<FocusOut>", self._actualizar_total)
+                self.entries[key].bind("<FocusOut>", self._on_focusout_campo_numerico)
 
         # Botón Imprimir
         r += 1
@@ -182,7 +186,7 @@ class BasePresupuestoWindow:
             return "break"
 
     def _on_ve_focusout(self, event=None):
-        """Valida Valor económico al perder foco."""
+        """Valida y formatea Valor económico al perder foco (formato argentino)."""
         val = self.veconomico.get().strip()
         if not val:
             self._lbl_ve_error.config(text="")
@@ -192,6 +196,8 @@ class BasePresupuestoWindow:
             self._lbl_ve_error.config(text="Valor no numérico")
         else:
             self._lbl_ve_error.config(text="")
+            self.veconomico.delete(0, tk.END)
+            self.veconomico.insert(0, formatos.formatear_decimal(v))
 
     def _on_ctrl_s(self, event):
         self._exportar_html()
@@ -200,6 +206,19 @@ class BasePresupuestoWindow:
     def _on_ctrl_q(self, event):
         self._on_salir()
         return "break"
+
+    def _on_focusout_campo_numerico(self, event=None):
+        """Formatea el campo en formato argentino y actualiza el Total."""
+        w = event.widget if event else None
+        if w:
+            st = str(w.cget("state"))
+            if "normal" in st and "disabled" not in st:
+                val = w.get().strip()
+                if val:
+                    v = formatos.parse_decimal(val)
+                    w.delete(0, tk.END)
+                    w.insert(0, formatos.formatear_decimal(v))
+        self._actualizar_total(event)
 
     def _actualizar_total(self, event=None):
         """Actualiza el Total si los campos de monto están habilitados."""
@@ -291,7 +310,32 @@ class BasePresupuestoWindow:
             self.aplicadamitad = True
             self.btn_bajar.config(bg="red")
 
+    def _formatear_todos_los_numeros(self) -> None:
+        """Formatea todos los campos numéricos al formato argentino antes de exportar/imprimir."""
+        # Valor económico
+        val = self.veconomico.get().strip()
+        if val:
+            v = formatos.parse_decimal(val)
+            self.veconomico.delete(0, tk.END)
+            self.veconomico.insert(0, formatos.formatear_decimal(v))
+        # Campos del presupuesto (solo los habilitados)
+        for key in getattr(self, "_claves_numericas", []):
+            e = self.entries.get(key)
+            if not e:
+                continue
+            st = str(e.cget("state"))
+            if "normal" in st and "disabled" not in st:
+                val = e.get().strip()
+                if val:
+                    v = formatos.parse_decimal(val)
+                    e.delete(0, tk.END)
+                    e.insert(0, formatos.formatear_decimal(v))
+        if self._calculado:
+            self.total.delete(0, tk.END)
+            self.total.insert(0, self._sumar_todo())
+
     def _exportar_html(self):
+        self._formatear_todos_los_numeros()
         html = self._get_html()
         if not html:
             return
@@ -310,6 +354,7 @@ class BasePresupuestoWindow:
                 messagebox.showerror("Error", f"No se pudo guardar el archivo.\n\n{e}")
 
     def _copiar_html(self):
+        self._formatear_todos_los_numeros()
         html = self._get_html()
         if html:
             self.win.clipboard_clear()
@@ -370,6 +415,7 @@ class BasePresupuestoWindow:
             filetypes=[("PDF (*.pdf)", "*.pdf"), ("Todos", "*.*")],
         )
         if path:
+            self._formatear_todos_los_numeros()
             self._imprimir_a_archivo(path)
             messagebox.showinfo("Guardar PDF", "Archivo guardado correctamente.")
 

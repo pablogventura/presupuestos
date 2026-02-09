@@ -47,6 +47,7 @@ class VentaWindow(BasePresupuestoWindow):
         )
 
     def _imprimir(self):
+        self._formatear_todos_los_numeros()
         dibujar_venta(
             self.arancel.get(), self.certificado.get(),
             self.aportes1.get(), self.aportes2.get(),
