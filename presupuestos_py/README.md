@@ -19,6 +19,12 @@ python3 -m venv .venv
 .venv/bin/python main.py
 ```
 
+### Ejecutar tests
+
+```bash
+.venv/bin/pytest tests/ -v
+```
+
 ### Empaquetado con PyInstaller
 
 ```bash
